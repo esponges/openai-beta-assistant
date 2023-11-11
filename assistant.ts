@@ -12,9 +12,9 @@ const openai = new OpenAI({
   apiKey: secretKey,
 });
 
-async function askQuestion(question) {
-  return new Promise((resolve, reject) => {
-    readline.question(question, (answer) => {
+async function askQuestion(question: string) {
+  return new Promise<string>((resolve, reject) => {
+    readline.question(question, (answer: string) => {
       resolve(answer);
     });
   });
