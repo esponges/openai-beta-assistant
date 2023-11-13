@@ -1,4 +1,4 @@
 # node modules ignore
 node_modules
-
 .env
+public/pdf

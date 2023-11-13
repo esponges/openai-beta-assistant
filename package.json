@@ -5,7 +5,8 @@
   "main": "assistant.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node assistant.ts"
+    "start": "ts-node assistant.ts",
+    "functions": "ts-node function-calling.ts"
   },
   "author": "",
   "license": "ISC",
