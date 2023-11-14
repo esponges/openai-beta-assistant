@@ -90,8 +90,6 @@ async function main() {
         "You are a personal math tutor. Answer questions briefly, in a sentence or less.",
       tools: [
         { type: "code_interpreter" },
-        // todo: necessary?
-        { type: "retrieval" },
         {
           type: "function",
           function: quizJson,
@@ -102,7 +100,7 @@ async function main() {
       // model: "gpt-3.5-turbo-1106",
     });
 
-    // Log the first greeting
+    // Log a first greeting
     console.log(
       "\nHello there, I'm Fernando's personal Math assistant. We'll start with a small quiz.\n",
     );
@@ -110,15 +108,16 @@ async function main() {
     // Create a thread
     const thread = await openai.beta.threads.create();
 
-    // Use keepAsking as state for keep asking questions
-    let keepAsking = true;
+    // Use continueConversation as state for keep asking questions
+    let continueConversation = true;
 
-    while (keepAsking) {
-      const userQuestion = isQuizAnswered
-        ? await askRLineQuestion("You next question to the model: \n")
-        // this will make the model  build a quiz using our provided function
-        : "Make a quiz with 2 questions: One open ended, one multiple choice" +
-          "Then, give me feedback for the responses.";
+    while (continueConversation) {
+      // const userQuestion = isQuizAnswered
+      //   ? await askRLineQuestion("You next question to the model: \n")
+      //   // this will make the model  build a quiz using our provided function
+      //   : "Make a quiz with 2 questions: One open ended, one multiple choice" +
+      //     "Then, give me feedback for the responses.";
+      const userQuestion = await askRLineQuestion("You next question to the model: \n");
 
       // Pass in the user question into the existing thread
       await openai.beta.threads.messages.create(thread.id, {
@@ -137,13 +136,13 @@ async function main() {
       );
 
       // Polling mechanism to see if actualRun is completed
-      // This should be made more robust.
       while (
         actualRun.status === "queued" ||
         actualRun.status === "in_progress" ||
         actualRun.status === "requires_action"
       ) {
         // requires_action means that the assistant is waiting for the functions to be added
+
         if (actualRun.status === "requires_action") {
           // extra single tool call
           const toolCall =
@@ -191,7 +190,7 @@ async function main() {
 
       // If an assistant message is found, console.log() it
       if (lastMessageForRun) {
-        // aparently this is not correctly typed
+        // aparently the `content` array is not correctly typed
         // content returns an of objects do contain a text object
         const messageValue = lastMessageForRun.content[0] as {
           text: { value: string };
@@ -200,15 +199,17 @@ async function main() {
         console.log(`${messageValue?.text?.value} \n`);
       }
 
-      // Then ask if the user wants to ask another question and update keepAsking state
+      // Then ask if the user wants to ask another question and update continueConversation state
       const continueAsking = await askRLineQuestion(
         "Do you want to keep having a conversation? (yes/no) ",
       );
 
-      keepAsking = continueAsking.toLowerCase() === "yes";
+      console.log("continueAsking: ", continueAsking, continueAsking.toLowerCase() === "yes");
 
-      // If the keepAsking state is falsy show an ending message
-      if (!keepAsking) {
+      continueConversation = continueAsking.toLowerCase().includes("yes");
+
+      // If the continueConversation state is falsy show an ending message
+      if (!continueConversation) {
         console.log("Alrighty then, I hope you learned something!\n");
       }
     }
