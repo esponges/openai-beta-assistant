@@ -23,7 +23,7 @@ async function askRLineQuestion(question: string) {
 // initial reference for implementation (in Python)
 // https://github.com/openai/openai-cookbook/blob/main/examples/Assistants_API_overview_python.ipynb
 async function displayQuiz(title: string, questions: Record<string, string>[]) {
-  console.log("Quiz :\n", title);
+  console.log("Quiz:\n", title);
   const responses = [];
 
   for (const question of questions) {
@@ -46,7 +46,7 @@ async function displayQuiz(title: string, questions: Record<string, string>[]) {
 
     responses.push(response);
   }
-  console.log("Your responses from the quiz :\n", responses);
+  console.log("Your responses from the quiz:\n", responses);
   return responses;
 }
 
@@ -112,12 +112,11 @@ async function main() {
     let continueConversation = true;
 
     while (continueConversation) {
-      // const userQuestion = isQuizAnswered
-      //   ? await askRLineQuestion("You next question to the model: \n")
-      //   // this will make the model  build a quiz using our provided function
-      //   : "Make a quiz with 2 questions: One open ended, one multiple choice" +
-      //     "Then, give me feedback for the responses.";
-      const userQuestion = await askRLineQuestion("You next question to the model: \n");
+      const userQuestion = isQuizAnswered
+        ? await askRLineQuestion("You next question to the model: \n")
+        // this will make the model  build a quiz using our provided function
+        : "Make a quiz with 2 questions: One open ended, one multiple choice" +
+          "Then, give me feedback for the responses.";
 
       // Pass in the user question into the existing thread
       await openai.beta.threads.messages.create(thread.id, {
@@ -203,8 +202,6 @@ async function main() {
       const continueAsking = await askRLineQuestion(
         "Do you want to keep having a conversation? (yes/no) ",
       );
-
-      console.log("continueAsking: ", continueAsking, continueAsking.toLowerCase() === "yes");
 
       continueConversation = continueAsking.toLowerCase().includes("yes");
 
