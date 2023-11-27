@@ -86,3 +86,5 @@ function allowMessage(message: string, reason: string) {
   console.log("Reason:", reason);
   return `Message: ${message}\nReason: ${reason}\n`;
 }
+
+export {}

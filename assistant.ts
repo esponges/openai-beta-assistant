@@ -104,3 +104,5 @@ async function main() {
 
 // Call the main function
 main();
+
+export {}
