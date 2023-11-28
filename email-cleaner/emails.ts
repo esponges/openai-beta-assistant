@@ -6,6 +6,7 @@ const {google} = require('googleapis');
 
 // IMPORTANT: Use the google docs tutorial to create and access to your gmail account
 // follow step by step the authorization process or it will not work
+// https://developers.google.com/gmail/api/quickstart/nodejs
 
 // If modifying these scopes, delete token.json.
 const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];

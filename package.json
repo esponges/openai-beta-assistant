@@ -8,7 +8,7 @@
     "start": "ts-node assistant.ts",
     "functions": "ts-node function-calling.ts",
     "contextual-functions": "ts-node contextual-function-calling.ts",
-    "gmail-unread-cleaner": "ts-node gmail-unread-cleaner.ts"
+    "email-cleaner": "ts-node email-cleaner/emails.ts"
   },
   "author": "",
   "license": "ISC",
