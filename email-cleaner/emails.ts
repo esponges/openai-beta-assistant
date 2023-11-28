@@ -1,8 +1,8 @@
 const fs = require('fs').promises;
 const path = require('path');
 const process = require('process');
-const {authenticate} = require('@google-cloud/local-auth');
-const {google} = require('googleapis');
+const { authenticate } = require('@google-cloud/local-auth');
+const { google } = require('googleapis');
 
 // IMPORTANT: Use the google docs tutorial to create and access to your gmail account
 // follow step by step the authorization process or it will not work
@@ -75,7 +75,7 @@ async function authorize() {
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
 async function listLabels(auth) {
-  const gmail = google.gmail({version: 'v1', auth});
+  const gmail = google.gmail({ version: 'v1', auth });
   const res = await gmail.users.labels.list({
     userId: 'me',
   });
@@ -90,6 +90,68 @@ async function listLabels(auth) {
   });
 }
 
-authorize().then(listLabels).catch(console.error);
+/**
+ * Lists the messages in the user's account.
+ *
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ */
+async function listMessages(auth) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    maxResults: 10,
+  });
+  const messages = res.data.messages;
+  if (!messages || messages.length === 0) {
+    console.log('No messages found.');
+    return;
+  }
+  console.log('Messages:');
+  messages.forEach((message) => {
+    console.log({ message });
+    console.log(`- ${message.id}`);
+  });
+}
 
-export {}
+/**
+ * Gets the message details in the user's account.
+ * @param {nubmer} id The id of the message.
+ * @return {Promise<object>}
+ */
+async function getMessage(auth, id) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  return gmail.users.messages.get({
+    userId: 'me',
+    id,
+  });
+}
+
+/**
+ * Lists unread messages in the user's account.
+ *
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ */
+async function listUnreadMessages(auth) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  const res = await gmail.users.messages.list({
+    userId: 'me',
+    maxResults: 5,
+    q: 'is:unread',
+  });
+  const messages = res.data.messages;
+  if (!messages || messages.length === 0) {
+    console.log('No messages found.');
+    return;
+  }
+  messages.forEach(async (message) => {
+    // get message data
+    const res = await getMessage(auth, message.id);
+    console.log({ res });
+  });
+}
+
+// authorize().then(listLabels).catch(console.error);
+// authorize().then(listMessages).catch(console.error);
+authorize().then(listUnreadMessages).catch(console.error);
+
+export {};
