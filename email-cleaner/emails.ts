@@ -84,9 +84,38 @@ async function listLabels(auth) {
     console.log('No labels found.');
     return;
   }
-  console.log('Labels:');
-  labels.forEach((label) => {
+
+  return labels.map((label) => {
     console.log(`- ${label.name}`);
+    return label;
+  });
+}
+
+/**
+ * Gets the message details in the user's account.
+ * @param {nubmer} id The id of the message.
+ * @return {Promise<object>}
+ */
+async function getMessage(auth, id) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  return gmail.users.messages.get({
+    userId: 'me',
+    id,
+  });
+}
+
+/**
+ * Deletes the message in the user's account.
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {nubmer} id The id of the message.
+ * @return {Promise<object>}
+ */
+
+async function deleteMessage(auth, id) {
+  const gmail = google.gmail({ version: 'v1', auth });
+  return gmail.users.messages.delete({
+    userId: 'me',
+    id,
   });
 }
 
@@ -106,24 +135,14 @@ async function listMessages(auth) {
     console.log('No messages found.');
     return;
   }
-  console.log('Messages:');
-  messages.forEach((message) => {
-    console.log({ message });
-    console.log(`- ${message.id}`);
-  });
-}
+  let messagesWithDetails = [];
+  for await (const message of messages) {
+    // get message data
+    const res = await getMessage(auth, message.id);
+    messagesWithDetails.push({ id: message.id, snippet: res.data.snippet });
+  }
 
-/**
- * Gets the message details in the user's account.
- * @param {nubmer} id The id of the message.
- * @return {Promise<object>}
- */
-async function getMessage(auth, id) {
-  const gmail = google.gmail({ version: 'v1', auth });
-  return gmail.users.messages.get({
-    userId: 'me',
-    id,
-  });
+  return messagesWithDetails;
 }
 
 /**
@@ -143,11 +162,20 @@ async function listUnreadMessages(auth) {
     console.log('No messages found.');
     return;
   }
-  messages.forEach(async (message) => {
+
+  let messagesWithDetails = [];
+  for await (const message of messages) {
     // get message data
     const res = await getMessage(auth, message.id);
-    console.log({ res });
-  });
+    messagesWithDetails.push({ id: message.id, snippet: res.data.snippet });
+  }
+  console.log(messagesWithDetails);
+
+  // delete first message
+  // const del = await deleteMessage(auth, messagesWithDetails[0].id);
+  // console.log(del.data);
+
+  return messagesWithDetails;
 }
 
 // authorize().then(listLabels).catch(console.error);
