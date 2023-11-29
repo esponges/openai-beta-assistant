@@ -8,13 +8,15 @@ const { google } = require('googleapis');
 // follow step by step the authorization process or it will not work
 // https://developers.google.com/gmail/api/quickstart/nodejs
 
+// this gives ALL permissions to the app - USE WITH CAUTION
+// app should be configured before running this script in the OAuth consent screen -> Scopes for Google APIs
 // If modifying these scopes, delete token.json.
-const SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+const SCOPES = ['https://mail.google.com/'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'credentials.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'email-cleaner/credentials.json');
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -111,11 +113,19 @@ async function getMessage(auth, id) {
  * @return {Promise<object>}
  */
 
-async function deleteMessage(auth, id) {
+async function deleteMessages(auth, ids: number | number[]) {
   const gmail = google.gmail({ version: 'v1', auth });
+
+  if (Array.isArray(ids)) {
+    return gmail.users.messages.batchDelete({
+      userId: 'me',
+      ids,
+    });
+  }
+
   return gmail.users.messages.delete({
     userId: 'me',
-    id,
+    id: ids,
   });
 }
 
@@ -172,8 +182,7 @@ async function listUnreadMessages(auth) {
   console.log(messagesWithDetails);
 
   // delete first message
-  // const del = await deleteMessage(auth, messagesWithDetails[0].id);
-  // console.log(del.data);
+  const del = await deleteMessages(auth, messagesWithDetails[0].id);
 
   return messagesWithDetails;
 }
