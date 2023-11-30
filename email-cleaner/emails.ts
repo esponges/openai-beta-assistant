@@ -192,3 +192,59 @@ async function listUnreadMessages(auth) {
 authorize().then(listUnreadMessages).catch(console.error);
 
 export {};
+
+/* 
+Assistant description:
+
+// Apparently this instructions work for only passing to the assistant the messages without any more instructions when starting the run
+
+You expertly filter emails for spam using advanced techniques. 
+Given email IDs and snippets, your role is to swiftly provide an object for spam_message_filter with the array of messages as per provided in the Function object. 
+Then invoke this function. Keep reasons very short and the snippet no more than 10 words. 
+Don't engage in any conversation, just return the solicited object and once you're done just finish the run saying 'success' or 'failure'.
+*/
+
+// shape of the object to return by the assistant which will be used by the spam_message_filter function
+const spamMessageFilter = {
+  "name": "spam_message_filter",
+  "description": "Filter spam messages and explain why it is spam",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "description": "The list of messages to filter",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The id of the message"
+            },
+            "snippet": {
+              "type": "string",
+              "description": "The snippet of the message"
+            },
+            "is_spam_or_marketing": {
+              "type": "boolean",
+              "description": "the decision"
+            },
+            "reason": {
+              "type": "string",
+              "description": "The reason why the message is spam"
+            }
+          },
+          "required": [
+            "id",
+            "snippet",
+            "reason",
+            "is_spam_or_marketing"
+          ]
+        }
+      }
+    },
+    "required": [
+      "messages"
+    ]
+  }
+}; 
