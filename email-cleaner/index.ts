@@ -1,4 +1,4 @@
-import { authorize, listUnreadMessages } from './emails';
+import { authorize, deleteMessages, listUnreadMessages } from './email';
 
 // import the required dependencies
 require('dotenv').config();
@@ -62,19 +62,31 @@ type Message = {
   reason: string;
 };
 
-async function spamMessageFilter(messages: Message[]) {
-  // here call the googleapis to delete the messages
-  console.log('calling function messages', messages);
+async function initGmailAuth() {
+  try {
+    const auth = await authorize();
+    return auth;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
 }
 
-async function fetchLatestUnreadEmails(quantity: number = 10) {
-  return authorize()
-    .then((auth) => listUnreadMessages(auth, quantity))
-    .catch(console.error);
+async function spamMessageFilter(messages: Message[], auth) {
+  // here call the googleapis to delete the messages
+  const ids = messages.map((message) => message.id);
+  deleteMessages(auth, ids)
+    .then(() => console.log('messages deleted', ids))
+    .catch((error) => console.error('error deleting messages', error));
+}
+
+async function fetchLatestUnreadEmails(quantity: number = 10, auth) {
+  return await listUnreadMessages(auth, quantity);
 }
 
 async function main() {
-  const messages = await fetchLatestUnreadEmails(2);
+  const gmailAuth = await initGmailAuth();
+  const messages = await fetchLatestUnreadEmails(10, gmailAuth);
   if (Array.isArray(messages) && messages.length === 0) {
     console.log('Failed to fetch messages');
     return;
@@ -133,7 +145,7 @@ async function main() {
       const messages = args.messages;
 
       if (name === 'spam_message_filter') {
-        await spamMessageFilter(messages);
+        await spamMessageFilter(messages, gmailAuth);
       } else {
         throw new Error('Unknown function name');
       }

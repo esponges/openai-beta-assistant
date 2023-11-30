@@ -113,7 +113,7 @@ async function getMessage(auth, id) {
  * @return {Promise<object>}
  */
 
-async function deleteMessages(auth, ids: number | number[]) {
+export async function deleteMessages(auth, ids: string | string[]) {
   const gmail = google.gmail({ version: 'v1', auth });
 
   if (Array.isArray(ids)) {
