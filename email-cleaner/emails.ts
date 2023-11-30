@@ -56,7 +56,7 @@ async function saveCredentials(client) {
  * Load or request or authorization to call APIs.
  *
  */
-async function authorize() {
+export async function authorize() {
   let client = await loadSavedCredentialsIfExist();
   if (client) {
     return client;
@@ -160,11 +160,11 @@ async function listMessages(auth) {
  *
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
  */
-async function listUnreadMessages(auth) {
+export async function listUnreadMessages(auth, qty = 10) {
   const gmail = google.gmail({ version: 'v1', auth });
   const res = await gmail.users.messages.list({
     userId: 'me',
-    maxResults: 5,
+    maxResults: qty,
     q: 'is:unread',
   });
   const messages = res.data.messages;
@@ -179,10 +179,10 @@ async function listUnreadMessages(auth) {
     const res = await getMessage(auth, message.id);
     messagesWithDetails.push({ id: message.id, snippet: res.data.snippet });
   }
-  console.log(messagesWithDetails);
+  // console.log(messagesWithDetails);
 
-  // delete first message
-  const del = await deleteMessages(auth, messagesWithDetails[0].id);
+  // // delete first message
+  // const del = await deleteMessages(auth, messagesWithDetails[0].id);
 
   return messagesWithDetails;
 }

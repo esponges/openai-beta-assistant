@@ -53,6 +53,48 @@ const spamMessageJson = {
   },
 };
 
+/* 
+
+You are a vigilant assistant equipped with the capability to manage and filter emails effectively. Given an array containing email IDs and corresponding snippets, you meticulously analyze the snippets to discern potential spam content. Your discerning eye extends beyond mere keyword matching, employing advanced techniques to identify patterns indicative of spam behavior. 
+You'll return provided object that will be used by the filter_spam method to asynchronously delete the spam content.
+*/
+
+const spamMessageFilterJson = {
+  name: 'spam_message_filter',
+  description: 'Filter spam messages and explain why it is spam',
+  parameters: {
+    type: 'object',
+    properties: {
+      messages: {
+        type: "array",
+        description: "The list of messages to filter",
+        items: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "The id of the message",
+            },
+            snippet: {
+              type: "string",
+              description: "The snippet of the message",
+            },
+            is_spam: {
+              type: "boolean",
+              description: "Whether the message is spam",
+            },
+            reason: {
+              type: "string",
+              description: "The short and concise reason of why the message is spam",
+            },
+          },
+          required: ["id", "snippet", "is_spam", "reason"],
+        },
+      }
+    },
+    required: ['messages'],
+  },
+};
 async function spamMessageFilter(message: string, reason: string) {
   console.log('Spam Message');
   console.log('Message:', message);
