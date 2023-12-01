@@ -1,4 +1,9 @@
-import { authorize, deleteMessages, listUnreadMessages } from './email';
+import {
+  authorize,
+  deleteMessages,
+  listUnreadMessages,
+  markAsRead,
+} from './email';
 
 // import the required dependencies
 require('dotenv').config();
@@ -73,11 +78,29 @@ async function initGmailAuth() {
 }
 
 async function spamMessageFilter(messages: Message[], auth) {
-  // here call the googleapis to delete the messages
-  const ids = messages.map((message) => message.id);
-  deleteMessages(auth, ids)
-    .then(() => console.log('messages deleted', ids))
-    .catch((error) => console.error('error deleting messages', error));
+  const delIds = messages
+    .filter((message) => message.is_spam_or_marketing)
+    .map((message) => message.id);
+
+  // delete the messages
+  deleteMessages(auth, delIds)
+    .then(() => console.log('messages deleted', delIds))
+    .catch(() => {
+      // throw
+      throw new Error('error deleting messages');
+    });
+
+  const readIds = messages
+    .filter((message) => !message.is_spam_or_marketing)
+    .map((message) => message.id);
+  
+  // mark as read
+  markAsRead(auth, readIds)
+    .then(() => console.log('messages marked as read', readIds))
+    .catch(() => {
+      // throw
+      throw new Error('error marking messages as read');
+    });
 }
 
 async function fetchLatestUnreadEmails(quantity: number = 10, auth) {

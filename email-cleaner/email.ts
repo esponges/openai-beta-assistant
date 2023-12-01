@@ -16,7 +16,10 @@ const SCOPES = ['https://mail.google.com/'];
 // created automatically when the authorization flow completes for the first
 // time.
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
-const CREDENTIALS_PATH = path.join(process.cwd(), 'email-cleaner/credentials.json');
+const CREDENTIALS_PATH = path.join(
+  process.cwd(),
+  'email-cleaner/credentials.json'
+);
 
 /**
  * Reads previously authorized credentials from the save file.
@@ -109,7 +112,7 @@ async function getMessage(auth, id) {
 /**
  * Deletes the message in the user's account.
  * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
- * @param {nubmer} id The id of the message.
+ * @param {string[]|string} id The id of the message.
  * @return {Promise<object>}
  */
 
@@ -126,6 +129,34 @@ export async function deleteMessages(auth, ids: string | string[]) {
   return gmail.users.messages.delete({
     userId: 'me',
     id: ids,
+  });
+}
+
+/**
+ * Marks as read the message in the user's account.
+ * @param {google.auth.OAuth2} auth An authorized OAuth2 client.
+ * @param {nubmer[]} id The id of the message.
+ * @return {Promise<object>}
+ */
+export async function markAsRead(auth, ids: string | string[]) {
+  const gmail = google.gmail({ version: 'v1', auth });
+
+  if (Array.isArray(ids)) {
+    return gmail.users.messages.batchModify({
+      userId: 'me',
+      ids,
+      requestBody: {
+        removeLabelIds: ['UNREAD'],
+      },
+    });
+  }
+
+  return gmail.users.messages.modify({
+    userId: 'me',
+    id: ids,
+    requestBody: {
+      removeLabelIds: ['UNREAD'],
+    },
   });
 }
 
@@ -206,45 +237,38 @@ Don't engage in any conversation, just return the solicited object and once you'
 
 // shape of the object to return by the assistant which will be used by the spam_message_filter function
 const spamMessageFilter = {
-  "name": "spam_message_filter",
-  "description": "Filter spam messages and explain why it is spam",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "messages": {
-        "type": "array",
-        "description": "The list of messages to filter",
-        "items": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "description": "The id of the message"
+  name: 'spam_message_filter',
+  description: 'Filter spam messages and explain why it is spam',
+  parameters: {
+    type: 'object',
+    properties: {
+      messages: {
+        type: 'array',
+        description: 'The list of messages to filter',
+        items: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'The id of the message',
             },
-            "snippet": {
-              "type": "string",
-              "description": "The snippet of the message"
+            snippet: {
+              type: 'string',
+              description: 'The snippet of the message',
             },
-            "is_spam_or_marketing": {
-              "type": "boolean",
-              "description": "the decision"
+            is_spam_or_marketing: {
+              type: 'boolean',
+              description: 'the decision',
             },
-            "reason": {
-              "type": "string",
-              "description": "The reason why the message is spam"
-            }
+            reason: {
+              type: 'string',
+              description: 'The reason why the message is spam',
+            },
           },
-          "required": [
-            "id",
-            "snippet",
-            "reason",
-            "is_spam_or_marketing"
-          ]
-        }
-      }
+          required: ['id', 'snippet', 'reason', 'is_spam_or_marketing'],
+        },
+      },
     },
-    "required": [
-      "messages"
-    ]
-  }
-}; 
+    required: ['messages'],
+  },
+};
