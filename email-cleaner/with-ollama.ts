@@ -60,11 +60,11 @@ const emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[] = [
   },
   {
     id: '2',
-    snippet: 'Hi Fer, I loved to see you the other day in your home...',
+    snippet: 'Hello Fer, just confirming our next meeting is at 3pm on 12/12/2022',
   },
   {
     id: '3',
-    snippet: 'Get this deal! I’m going to be rich!',
+    snippet: 'Get this deal! You are going to get rich soon!',
   },
 ];
 
@@ -72,16 +72,31 @@ function createPrompt(
   messages: Omit<Message, 'reason' | 'is_spam_or_marketing'>[]
 ) {
   return `You are a helpful assistant that filters spam emails.
-  From the following list of emails, please provide a list of messages that are considered spam. 
-  Use the filter_spam function to return a list of messages that are considered spam.
+  From the following list of emails: 
   ${messages.forEach((message) => {
-    return `id: ${message.id}, snippet: ${message.snippet}.\n`;
-  })}`;
+    return `- id: ${message.id}, snippet: ${message.snippet}.\n`;
+  })}
+  Tell whether the email is spam or not and why.
+  Return your response in JSON in the following JSON format:
+
+    {
+      "messages": [
+        {
+          "id": The id of the message,
+          "snippet": The snippet of the message,
+          "is_spam_or_marketing": true/false,
+          "reason": A comprehensive description of the reason why the message is spam
+        }
+      ]
+    }
+
+  
+  `;
 }
 
 async function main(
   emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[],
-  tools: Tool[]
+  tools?: Tool[]
 ) {
   const curl = await fetch('http://localhost:11434/api/generate', {
     method: 'POST',
@@ -90,15 +105,16 @@ async function main(
     },
     body: JSON.stringify({
       model: 'gemma2:2b',
-      messages: [
-        {
-          role: 'user',
-          content: createPrompt(emails),
-        },
-      ],
-      // format: "json",
+      // messages: [
+      //   {
+      //     role: 'user',
+      //     content: createPrompt(emails),
+      //   },
+      // ],
+      format: "json",
+      prompt: createPrompt(emails),
       stream: false,
-      tools,
+      // tools,
     }),
   });
   const response = await curl.json();
