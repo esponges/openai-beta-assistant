@@ -15,6 +15,7 @@ const SCOPES = ['https://mail.google.com/'];
 // The file token.json stores the user's access and refresh tokens, and is
 // created automatically when the authorization flow completes for the first
 // time.
+// the credentials.json file is the one downloaded from the google docs tutorial
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(
   process.cwd(),
@@ -210,10 +211,6 @@ export async function listUnreadMessages(auth, qty = 10) {
     const res = await getMessage(auth, message.id);
     messagesWithDetails.push({ id: message.id, snippet: res.data.snippet });
   }
-  // console.log(messagesWithDetails);
-
-  // // delete first message
-  // const del = await deleteMessages(auth, messagesWithDetails[0].id);
 
   return messagesWithDetails;
 }

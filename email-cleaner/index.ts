@@ -116,7 +116,7 @@ async function spamMessageFilter(messages: Message[], auth) {
     });
 }
 
-async function fetchLatestUnreadEmails(quantity: number = 10, auth) {
+async function fetchLatestUnreadEmails(quantity: number = 2, auth) {
   return await listUnreadMessages(auth, quantity);
 }
 
@@ -141,7 +141,7 @@ async function main() {
     const gmailAuth = await initGmailAuth();
 
     // todo: ask email quantity
-    const messages = await fetchLatestUnreadEmails(10, gmailAuth);
+    const messages = await fetchLatestUnreadEmails(2, gmailAuth);
     if (Array.isArray(messages) && messages.length === 0) {
       console.log('Failed to fetch messages');
       return;
@@ -192,6 +192,8 @@ async function main() {
   
         const args = JSON.parse(toolCall?.function?.arguments || '{}');
         const messages = args.messages;
+
+        console.log('messages', messages);
   
         if (name === 'spam_message_filter') {
           await spamMessageFilter(messages, gmailAuth);
