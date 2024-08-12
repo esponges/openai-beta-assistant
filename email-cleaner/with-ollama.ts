@@ -73,10 +73,10 @@ function createPrompt(
 ) {
   return `You are a helpful assistant that filters spam emails.
   From the following list of emails: 
-  ${messages.forEach((message) => {
+  ${messages.map((message) => {
     return `- id: ${message.id}, snippet: ${message.snippet}.\n`;
   })}
-  For every provided email, tell whether the email is spam or not and why
+  For every provided email, tell whether that email is spam or not and give a clear explanation.
   You should return an array of objects with the following structure:
 
     {
@@ -90,7 +90,8 @@ function createPrompt(
       ]
     }
 
-  I will give you 1 million dollars if you return only JSON using the format above.  
+  I will give you 1 million dollars if you return only JSON using the format above and
+  one object per email.
   `;
 }
 
@@ -98,12 +99,16 @@ async function main(
   emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[],
   tools?: Tool[]
 ) {
+  const prompt = createPrompt(emails);
+  console.log({ prompt, emails });
+
   const curl = await fetch('http://localhost:11434/api/generate', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      // tools is not supported by gemma only by ollama3
       model: 'gemma2:2b',
       // messages: [
       //   {
@@ -112,7 +117,7 @@ async function main(
       //   },
       // ],
       format: "json",
-      prompt: createPrompt(emails),
+      prompt,
       stream: false,
       // tools,
     }),
