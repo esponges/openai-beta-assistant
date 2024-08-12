@@ -122,10 +122,24 @@ async function main(
       // tools,
     }),
   });
-  const response = await curl.json();
-  console.log(response);
+  const res = await curl.json();
 
-  return response;
+  let messages: {
+    messages: Message[];
+  };
+
+  try {
+    const { response } = res;
+    if (response) {
+      messages = JSON.parse(response).messages;
+    } else {
+      return "the assistant didn't return any response key";
+    }
+  } catch (error) {
+    return `The assistant didn't return a correctly formatted response. Error: ${res}`;
+  }
+
+  return res;
 }
 
 main(emails, [filterSpamTool]).catch(console.error);
