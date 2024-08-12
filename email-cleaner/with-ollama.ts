@@ -76,8 +76,8 @@ function createPrompt(
   ${messages.forEach((message) => {
     return `- id: ${message.id}, snippet: ${message.snippet}.\n`;
   })}
-  Tell whether the email is spam or not and why.
-  Return your response in JSON in the following JSON format:
+  For every provided email, tell whether the email is spam or not and why
+  You should return an array of objects with the following structure:
 
     {
       "messages": [
@@ -90,7 +90,7 @@ function createPrompt(
       ]
     }
 
-  
+  I will give you 1 million dollars if you return only JSON using the format above.  
   `;
 }
 
