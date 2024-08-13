@@ -1,3 +1,5 @@
+import { listUnreadMessages, initGmailAuth } from "./email";
+
 // shape of the object to return by the assistant which will be used by the filter_spam function
 const filterSpamTool = {
   name: 'filter_spam',
@@ -95,12 +97,12 @@ function createPrompt(
   `;
 }
 
-async function main(
-  emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[],
+async function cleanWithOllama(
+  // emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[],
   tools?: Tool[]
 ) {
+  const emails = await getEmails();
   const prompt = createPrompt(emails);
-  console.log({ prompt, emails });
 
   const curl = await fetch('http://localhost:11434/api/generate', {
     method: 'POST',
@@ -142,6 +144,16 @@ async function main(
   return res;
 }
 
-main(emails, [filterSpamTool]).catch(console.error);
+async function getEmails() {
+  const auth = await initGmailAuth();
+  const count = process.argv.find((arg) => arg.startsWith('toDelete='));
+  const toDelete = count ? parseInt(count.split('=')[1]) : 2;
+
+  return await listUnreadMessages(auth, toDelete);
+}
+
+cleanWithOllama([filterSpamTool])
+.then(res => console.log(res))
+.catch(console.error);
 
 export {};

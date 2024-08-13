@@ -80,7 +80,7 @@ type Message = {
   reason: string;
 };
 
-async function initGmailAuth() {
+export async function initGmailAuth() {
   try {
     const auth = await authorize();
     return auth;
@@ -116,7 +116,7 @@ async function spamMessageFilter(messages: Message[], auth) {
     });
 }
 
-async function fetchLatestUnreadEmails(quantity: number = 2, auth) {
+export async function fetchLatestUnreadEmails(quantity: number = 2, auth) {
   return await listUnreadMessages(auth, quantity);
 }
 

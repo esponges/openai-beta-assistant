@@ -6,3 +6,5 @@ public/pdf
 # gmail bot
 credentials.json
 token.json
+
+client_secret*.json

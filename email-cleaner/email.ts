@@ -19,7 +19,7 @@ const SCOPES = ['https://mail.google.com/'];
 const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 const CREDENTIALS_PATH = path.join(
   process.cwd(),
-  'email-cleaner/credentials.json'
+  'email-cleaner/client_secret.json'
 );
 
 /**
@@ -215,11 +215,21 @@ export async function listUnreadMessages(auth, qty = 10) {
   return messagesWithDetails;
 }
 
+export async function initGmailAuth() {
+  try {
+    const auth = await authorize();
+    return auth;
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}
+
 // authorize().then(listLabels).catch(console.error);
 // authorize().then(listMessages).catch(console.error);
-authorize().then(listUnreadMessages).catch(console.error);
+// authorize().then(listUnreadMessages).catch(console.error);
 
-export {};
+// export {};
 
 /* 
 Assistant description:
