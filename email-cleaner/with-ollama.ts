@@ -1,7 +1,18 @@
 import { listUnreadMessages, initGmailAuth } from './email';
 
+
+type Tool = {
+  name: string;
+  description: string;
+  parameters: {
+    type: string;
+    properties: Record<string, any>;
+    required: string[];
+  };
+};
+
 // shape of the object to return by the assistant which will be used by the filter_spam function
-const filterSpamTool = {
+const filterSpamTool: Tool = {
   name: 'filter_spam',
   description: 'Filter spam messages and explain why it is spam',
   parameters: {
@@ -38,15 +49,9 @@ const filterSpamTool = {
   },
 };
 
-type Tool = {
-  name: string;
-  description: string;
-  parameters: {
-    type: string;
-    properties: Record<string, any>;
-    required: string[];
-  };
-};
+/* 
+  Start of the implementation. Above only tool description
+*/
 
 type Message = {
   id: string;
@@ -89,7 +94,6 @@ async function cleanWithOllama() {
   try {
     const emails = await getEmails();
     const prompt = createPrompt(emails);
-    console.log({ prompt });
 
     const curl = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -106,7 +110,6 @@ async function cleanWithOllama() {
       }),
     });
     const res = await curl.json();
-    console.log({ res });
 
     const { response } = res;
 
@@ -125,8 +128,11 @@ async function cleanWithOllama() {
 
 async function getEmails(): Promise<Message[]> {
   const auth = await initGmailAuth();
-  const count = process.argv.find((arg) => arg.startsWith('deleteCount='));
-  const toDelete = count ? parseInt(count.split('=')[1]) : 2;
+  const deleteFlag = process.argv.find((arg) => arg.startsWith('deleteCount='));
+  const toDelete = deleteFlag ? parseInt(deleteFlag.split('=')[1]) : 2;
+  // having problems getting gemma to output more than 3 messages
+  // probably other models will work better
+  const deleteCount = toDelete > 3 ? 3 : toDelete;
 
   return await listUnreadMessages(auth, toDelete);
 }
