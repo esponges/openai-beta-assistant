@@ -1,5 +1,20 @@
-import { listUnreadMessages, initGmailAuth } from './email';
+import { listUnreadMessages, initGmailAuth, deleteMessages } from './email';
 
+const readline = require('readline').createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
+
+const askPermission = async () => {
+  return new Promise((resolve) => {
+    readline.question(
+      "Type 'yes' if you want to continue: ",
+      (answer: string) => {
+        resolve(answer);
+      }
+    );
+  });
+};
 
 type Tool = {
   name: string;
@@ -63,7 +78,7 @@ type AssessedMessage = {
   snippet: string;
   is_spam_or_marketing: boolean;
   reason: string;
-}
+};
 
 function createPrompt(messages: Message[]) {
   return `You are a helpful assistant that filters spam emails.
@@ -92,8 +107,9 @@ function createPrompt(messages: Message[]) {
 
 async function cleanWithOllama() {
   try {
-    const emails = await getEmails();
-    const prompt = createPrompt(emails);
+    const auth = await initGmailAuth();
+    const toDelete = await getEmails(auth);
+    const prompt = createPrompt(toDelete);
 
     const curl = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
@@ -116,29 +132,46 @@ async function cleanWithOllama() {
     let messages: AssessedMessage[] = [];
     if (response) {
       messages = JSON.parse(response).messages;
+
+      const ids = messages.map((message) => message.id);
+      if (ids.length !== toDelete.length) {
+        throw new Error(
+          'The assistant returned an incorrect number of messages'
+        );
+      }
+
+      console.log({ messages });
+
+      const userAnswer = await askPermission();
+      if (userAnswer === 'yes') {
+        // mark as read
+        await deleteMessages(auth, ids);
+        return 'messages deleted';
+      } else {
+        return 'messages not deleted';
+      }
     } else {
       return "the assistant didn't return any response key";
     }
-
-    return { res, messages };
   } catch (error) {
     return `The assistant didn't return a correctly formatted response. Error: ${error}`;
   }
 }
 
-async function getEmails(): Promise<Message[]> {
-  const auth = await initGmailAuth();
+async function getEmails(auth): Promise<Message[]> {
   const deleteFlag = process.argv.find((arg) => arg.startsWith('deleteCount='));
   const toDelete = deleteFlag ? parseInt(deleteFlag.split('=')[1]) : 2;
   // having problems getting gemma to output more than 3 messages
   // probably other models will work better
   const deleteCount = toDelete > 3 ? 3 : toDelete;
 
-  return await listUnreadMessages(auth, toDelete);
+  return await listUnreadMessages(auth, deleteCount);
 }
 
-cleanWithOllama()
-  .then((res) => console.log(res))
-  .catch(console.error);
-
+const iterations = 10;
+for (let i = 0; i < iterations; i++) {
+  cleanWithOllama()
+    .then((res) => console.log(res))
+    .catch(console.error);
+}
 export {};
