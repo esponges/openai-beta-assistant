@@ -9,7 +9,7 @@
     "functions": "ts-node function-calling.ts",
     "contextual-functions": "ts-node contextual-function-calling.ts",
     "email-cleaner": "ts-node email-cleaner/index.ts",
-    "clean-with-ollama": "ts-node email-cleaner/with-ollama.ts toDelete=10"
+    "clean-with-ollama": "ts-node email-cleaner/with-ollama.ts deleteCount=3"
   },
   "author": "",
   "license": "ISC",

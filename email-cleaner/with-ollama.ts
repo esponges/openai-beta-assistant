@@ -1,4 +1,4 @@
-import { listUnreadMessages, initGmailAuth } from "./email";
+import { listUnreadMessages, initGmailAuth } from './email';
 
 // shape of the object to return by the assistant which will be used by the filter_spam function
 const filterSpamTool = {
@@ -51,28 +51,16 @@ type Tool = {
 type Message = {
   id: string;
   snippet: string;
-  is_spam_or_marketing: boolean;
-  reason: string;
 };
 
-const emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[] = [
-  {
-    id: '1',
-    snippet: 'buy bitcoin now',
-  },
-  {
-    id: '2',
-    snippet: 'Hello Fer, just confirming our next meeting is at 3pm on 12/12/2022',
-  },
-  {
-    id: '3',
-    snippet: 'Get this deal! You are going to get rich soon!',
-  },
-];
+type AssessedMessage = {
+  id: string;
+  snippet: string;
+  is_spam_or_marketing: boolean;
+  reason: string;
+}
 
-function createPrompt(
-  messages: Omit<Message, 'reason' | 'is_spam_or_marketing'>[]
-) {
+function createPrompt(messages: Message[]) {
   return `You are a helpful assistant that filters spam emails.
   From the following list of emails: 
   ${messages.map((message) => {
@@ -97,63 +85,54 @@ function createPrompt(
   `;
 }
 
-async function cleanWithOllama(
-  // emails: Omit<Message, 'reason' | 'is_spam_or_marketing'>[],
-  tools?: Tool[]
-) {
-  const emails = await getEmails();
-  const prompt = createPrompt(emails);
-
-  const curl = await fetch('http://localhost:11434/api/generate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      // tools is not supported by gemma only by ollama3
-      model: 'gemma2:2b',
-      // messages: [
-      //   {
-      //     role: 'user',
-      //     content: createPrompt(emails),
-      //   },
-      // ],
-      format: "json",
-      prompt,
-      stream: false,
-      // tools,
-    }),
-  });
-  const res = await curl.json();
-
-  let messages: {
-    messages: Message[];
-  };
-
+async function cleanWithOllama() {
   try {
+    const emails = await getEmails();
+    const prompt = createPrompt(emails);
+    console.log({ prompt });
+
+    const curl = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gemma2:2b',
+        format: 'json',
+        prompt,
+        stream: false,
+        // tools is not supported by gemma only by ollama3
+        // tools,
+      }),
+    });
+    const res = await curl.json();
+    console.log({ res });
+
     const { response } = res;
+
+    let messages: AssessedMessage[] = [];
     if (response) {
       messages = JSON.parse(response).messages;
     } else {
       return "the assistant didn't return any response key";
     }
-  } catch (error) {
-    return `The assistant didn't return a correctly formatted response. Error: ${res}`;
-  }
 
-  return res;
+    return { res, messages };
+  } catch (error) {
+    return `The assistant didn't return a correctly formatted response. Error: ${error}`;
+  }
 }
 
-async function getEmails() {
+async function getEmails(): Promise<Message[]> {
   const auth = await initGmailAuth();
-  const count = process.argv.find((arg) => arg.startsWith('toDelete='));
+  const count = process.argv.find((arg) => arg.startsWith('deleteCount='));
   const toDelete = count ? parseInt(count.split('=')[1]) : 2;
 
   return await listUnreadMessages(auth, toDelete);
 }
 
-cleanWithOllama([filterSpamTool])
-.then(res => console.log(res))
-.catch(console.error);
+cleanWithOllama()
+  .then((res) => console.log(res))
+  .catch(console.error);
 
 export {};
