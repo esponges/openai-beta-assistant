@@ -1,20 +1,5 @@
 import { listUnreadMessages, initGmailAuth, deleteMessages } from './email';
-
-const readline = require('readline').createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-const askPermission = async () => {
-  return new Promise((resolve) => {
-    readline.question(
-      "Type 'yes' if you want to continue: ",
-      (answer: string) => {
-        resolve(answer);
-      }
-    );
-  });
-};
+import { askPermission } from './utils';
 
 type Tool = {
   name: string;
@@ -142,7 +127,7 @@ async function cleanWithOllama() {
 
       console.log({ messages });
 
-      const userAnswer = await askPermission();
+      const userAnswer = await askPermission("Type 'yes' if you want to continue: ");
       if (userAnswer === 'yes') {
         // mark as read
         await deleteMessages(auth, ids);
