@@ -156,9 +156,9 @@ async function getEmails(auth): Promise<Message[]> {
 }
 
 const iterations = 10;
-for (let i = 0; i < iterations; i++) {
-  cleanWithOllama()
-    .then((res) => console.log(res))
-    .catch(console.error);
-}
+new Array(iterations).fill('').forEach(async () => {
+  const result = await cleanWithOllama();
+  console.log('done', result);
+});
+
 export {};
