@@ -96,6 +96,8 @@ async function cleanWithOllama() {
     const toDelete = await getEmails(auth);
     const prompt = createPrompt(toDelete);
 
+    // node 18 needs to call 127.0.0.1:11434 instead of localhost
+    // https://github.com/node-fetch/node-fetch/issues/1624
     const curl = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: {
