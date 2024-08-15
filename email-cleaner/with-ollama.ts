@@ -96,7 +96,7 @@ async function cleanWithOllama() {
     const toDelete = await getEmails(auth);
     const prompt = createPrompt(toDelete);
 
-    const curl = await fetch('http://localhost:11434/api/generate', {
+    const curl = await fetch('http://127.0.0.1:11434/api/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
