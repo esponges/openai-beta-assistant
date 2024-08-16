@@ -1,4 +1,4 @@
-import { listUnreadMessages, initGmailAuth, deleteMessages } from './email';
+import { listUnreadMessages, initGmailAuth, deleteMessages, markAsRead } from './email';
 import { askPermission } from './utils';
 
 type Tool = {
@@ -120,8 +120,9 @@ async function cleanWithOllama() {
     if (response) {
       messages = JSON.parse(response).messages;
 
-      const ids = messages.map((message) => message.id);
-      if (ids.length !== toDelete.length) {
+      const deleteIds = messages.filter((message) => message.is_spam_or_marketing).map((message) => message.id);
+      const nonDeleteIds = messages.filter((message) => !message.is_spam_or_marketing).map((message) => message.id);
+      if (deleteIds.length + nonDeleteIds.length !== messages.length) {
         throw new Error(
           'The assistant returned an incorrect number of messages'
         );
@@ -132,7 +133,8 @@ async function cleanWithOllama() {
       const userAnswer = await askPermission("Type 'yes' if you want to continue: ");
       if (userAnswer === 'yes') {
         // mark as read
-        await deleteMessages(auth, ids);
+        await markAsRead(auth, nonDeleteIds);
+        await deleteMessages(auth, deleteIds);
         return 'messages deleted';
       } else {
         return 'messages not deleted';
