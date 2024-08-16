@@ -1,4 +1,9 @@
-import { listUnreadMessages, initGmailAuth, deleteMessages, markAsRead } from './email';
+import {
+  listUnreadMessages,
+  initGmailAuth,
+  deleteMessages,
+  markAsRead,
+} from './email';
 import { askPermission } from './utils';
 
 type Tool = {
@@ -116,12 +121,18 @@ async function cleanWithOllama() {
 
     const { response } = res;
 
+    console.log({ response });
+
     let messages: AssessedMessage[] = [];
     if (response) {
       messages = JSON.parse(response).messages;
 
-      const deleteIds = messages.filter((message) => message.is_spam_or_marketing).map((message) => message.id);
-      const nonDeleteIds = messages.filter((message) => !message.is_spam_or_marketing).map((message) => message.id);
+      const deleteIds = messages
+        .filter((message) => message.is_spam_or_marketing)
+        .map((message) => message.id);
+      const nonDeleteIds = messages
+        .filter((message) => !message.is_spam_or_marketing)
+        .map((message) => message.id);
       if (deleteIds.length + nonDeleteIds.length !== messages.length) {
         throw new Error(
           'The assistant returned an incorrect number of messages'
@@ -130,11 +141,18 @@ async function cleanWithOllama() {
 
       console.log({ messages });
 
-      const userAnswer = await askPermission("Type 'yes' if you want to continue: ");
+      const userAnswer = await askPermission(
+        "Type 'yes' if you want to continue: "
+      );
       if (userAnswer === 'yes') {
         // mark as read
-        await markAsRead(auth, nonDeleteIds);
-        await deleteMessages(auth, deleteIds);
+        if (nonDeleteIds.length > 0) {
+          await markAsRead(auth, nonDeleteIds);
+        }
+
+        if (deleteIds.length > 0) {
+          await deleteMessages(auth, deleteIds);
+        }
         return 'messages deleted';
       } else {
         return 'messages not deleted';
@@ -157,10 +175,14 @@ async function getEmails(auth): Promise<Message[]> {
   return await listUnreadMessages(auth, deleteCount);
 }
 
-const iterations = 10;
-new Array(iterations).fill('').forEach(async () => {
-  const result = await cleanWithOllama();
-  console.log('done', result);
-});
+async function runCleanWithOllama() {
+  const iterations = 10;
+  for (let i = 0; i < iterations; i++) {
+    const result = await cleanWithOllama();
+    console.log('done', result);
+  }
+}
+
+runCleanWithOllama();
 
 export {};
