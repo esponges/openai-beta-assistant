@@ -18,8 +18,11 @@ async function main(usePredefTags = true) {
 
   console.log(transcription.text);
 
+  const description = usePredefTags 
+    ? 'the main tags from the provided (if applicable): use ONLY the following: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom'
+    : 'the main tags that could help a content creator to group the content in a better way';
   const orderParameters = z.object({
-    tags: z.array(z.string()).describe('the main tags from the provided (if applicable): use ONLY the following: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom'),
+    tags: z.array(z.string()).describe(description),
   });
 
   const tools = [zodFunction({ name: 'getTags', parameters: orderParameters })];
