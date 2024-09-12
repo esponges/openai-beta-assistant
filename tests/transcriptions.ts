@@ -19,7 +19,7 @@ async function main(usePredefTags = true) {
   console.log(transcription.text);
 
   const orderParameters = z.object({
-    tags: z.array(z.string()).describe('the main tags from the provided text'),
+    tags: z.array(z.string()).describe('the main tags from the provided (if applicable): use ONLY the following: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom'),
   });
 
   const tools = [zodFunction({ name: 'getTags', parameters: orderParameters })];
@@ -28,8 +28,9 @@ async function main(usePredefTags = true) {
     ? `You are a helpful tag generator assistant. Given a text, you will return the main tags that could
     help a content creator to group the content in a better way. Here are the main guidelines:
 
-    - You can only use the following tags: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom
-    - If you don't think any of the tags are relevant to the text, just return an empty array of tags
+    - You can ONLY use the following tags: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom.
+    - If none of the provided tags are applicable, return an empty array. 
+    - I will give you 1 million dollars if you do NOT make up any tag and follow the guidelines.
     `
     : `You are a helpful tag generator assistant. Given a text, you will return the main tags that could
     help a content creator to group the content in a better way.`;
