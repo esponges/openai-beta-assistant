@@ -93,6 +93,7 @@ async function main() {
     messages: messages,
     tools: tools,
     stream: false,
+    temperature: 0
   });
 
   console.log('\nResponse');
