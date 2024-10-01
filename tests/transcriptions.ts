@@ -2,10 +2,13 @@ import * as fs from 'fs';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { zodFunction } from 'openai/helpers/zod';
-import { type ChatCompletionMessageParam } from 'openai/resources/chat';
+import { WaveFile } from 'wavefile';
 import * as readline from 'readline';
 
 import { AutomaticSpeechRecognitionPipelineFactory } from './pipeline-factory';
+
+
+import { type ChatCompletionMessageParam } from 'openai/resources/chat';
 
 require('dotenv').config();
 
@@ -54,8 +57,31 @@ async function transcribeLocal(
   // Load transcriber model
   let transcriber = await p.getInstance();
 
+  const buffer = Buffer.from(audio);
+
+  // Read .wav file and convert it to required format
+  const wav = new WaveFile();
+  wav.fromBuffer(buffer);
+  wav.toBitDepth('32f'); // Pipeline expects input as a Float32Array
+  wav.toSampleRate(16000); // Whisper expects audio with a sampling rate of 16000
+  let audioData = wav.getSamples();
+  if (Array.isArray(audioData)) {
+    if (audioData.length > 1) {
+      const SCALING_FACTOR = Math.sqrt(2);
+
+      // Merge channels (into first channel to save memory)
+      for (let i = 0; i < audioData[0].length; ++i) {
+        audioData[0][i] =
+          (SCALING_FACTOR * (audioData[0][i] + audioData[1][i])) / 2;
+      }
+    }
+
+    // Select first channel
+    audioData = audioData[0];
+  }
+
   // Actually run transcription
-  let output = await transcriber(audio, {
+  let output = await transcriber(audioData, {
     // Greedy
     top_k: 0,
     do_sample: false,
@@ -86,19 +112,19 @@ async function main() {
       answer = await askQuestion(`What audio file do you want to transcribe?\n
       
       Options:\n
-      1. the-role-of-community.wav
-      2. serious-disciplemaking.wav
+      1. the-role-of-community.mp3
+      2. serious-disciplemaking.mp3
       `);
       if (answer === '1') {
-        audioFile = './assets/the-role-of-community.wav';
+        audioFile = './assets/the-role-of-community.mp3';
       } else if (answer === '2') {
-        audioFile = './assets/serious-disciplemaking.wav';
+        audioFile = './assets/serious-disciplemaking.mp3';
       } else {
         console.log('Invalid option, please pick an correct option');
       }
     }
 
-    answer = await askQuestion('\nDo you want to use a local model (y/n)');
+    // answer = await askQuestion('\nDo you want to use a local model (y/n)');
 
     let text = '';
     if (answer.toLowerCase() === 'y') {
