@@ -5,6 +5,8 @@ import { zodFunction } from 'openai/helpers/zod';
 import { type ChatCompletionMessageParam } from 'openai/resources/chat';
 import * as readline from 'readline';
 
+import { AutomaticSpeechRecognitionPipelineFactory } from './pipeline-factory';
+
 require('dotenv').config();
 
 async function askQuestion(question: string) {
@@ -22,82 +24,166 @@ async function askQuestion(question: string) {
 
 const openai = new OpenAI();
 
-async function main() {
-  let audioFile = '';
-  let answer = '';
-  while (answer !== '1' && answer !== '2') {
-    answer = await askQuestion(`What audio file do you want to transcribe?\n
-    
-    Options:\n
-    1. the-role-of-community.mp3
-    2. serious-disciplemaking.mp3
-    `);
-    if (answer === '1') {
-      audioFile = './assets/the-role-of-community.mp3';
-    } else if (answer === '2') {
-      audioFile = './assets/serious-disciplemaking.mp3';
-    } else {
-      console.log('Invalid option, please pick an correct option');
+async function transcribeLocal(
+  audio: Float32Array,
+  model: string,
+  multilingual: boolean,
+  quantized: boolean,
+  subtask: string | null,
+  language: string | null
+) {
+  const isDistilWhisper = model.startsWith('distil-whisper/');
+
+  let modelName = model;
+  if (!isDistilWhisper && !multilingual) {
+    modelName += '.en';
+  }
+
+  const p = AutomaticSpeechRecognitionPipelineFactory; 
+  if (p.model !== modelName || p.quantized !== quantized) {
+    // Invalidate model if different
+    p.model = modelName;
+    p.quantized = quantized;
+
+    if (p.instance !== null) {
+      (await p.getInstance()).dispose();
+      p.instance = null;
     }
   }
 
-  const transcription = await openai.audio.transcriptions.create({
-    file: fs.createReadStream(audioFile),
-    model: 'whisper-1',
+  // Load transcriber model
+  let transcriber = await p.getInstance();
+
+  // Actually run transcription
+  let output = await transcriber(audio, {
+    // Greedy
+    top_k: 0,
+    do_sample: false,
+
+    // Sliding window
+    chunk_length_s: isDistilWhisper ? 20 : 30,
+    stride_length_s: isDistilWhisper ? 3 : 5,
+
+    // Language and task
+    language: language,
+    task: subtask,
+
+    // Return timestamps
+    // return_timestamps: true,
+    // force_full_sequences: false,
   });
 
-  if (!transcription.text) throw new Error('No text found');
+  return output;
+}
 
-  console.log(transcription.text);
+async function main() {
+  let audioFile = '';
+  let answer = '';
+  let keepGoing = true;
 
-  console.log('\nDone with transcription');
+  while (keepGoing) {
+    while (answer !== '1' && answer !== '2') {
+      answer = await askQuestion(`What audio file do you want to transcribe?\n
+      
+      Options:\n
+      1. the-role-of-community.wav
+      2. serious-disciplemaking.wav
+      `);
+      if (answer === '1') {
+        audioFile = './assets/the-role-of-community.wav';
+      } else if (answer === '2') {
+        audioFile = './assets/serious-disciplemaking.wav';
+      } else {
+        console.log('Invalid option, please pick an correct option');
+      }
+    }
 
-  answer = await askQuestion('\nDo you want to use predefined tags? (y/n)');
+    answer = await askQuestion('\nDo you want to use a local model (y/n)');
 
-  const description = answer.toLowerCase() === 'y' 
-    ? 'the main tags from the provided (if applicable): use ONLY the following: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom'
-    : 'the main tags that could help a content creator to group the content in a better way';
-  const orderParameters = z.object({
-    tags: z.array(z.string()).describe(description),
-  });
+    let text = '';
+    if (answer.toLowerCase() === 'y') {
+      console.log('\nRunning HuggingFace local model');
 
-  const tools = [zodFunction({ name: 'getTags', parameters: orderParameters })];
+      text = await transcribeLocal(
+        new Float32Array(fs.readFileSync(audioFile)),
+        'Xenova/whisper-tiny',
+        false,
+        false,
+        'transcribe',
+        'english'
+      );
+    } else {
+      console.log('\nCalling OpenAI API');
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(audioFile),
+        model: 'whisper-1',
+      });
 
-  const prompt = answer.toLowerCase() === 'y'
-    ? `You are a helpful tag generator assistant. 
-    Given a text, you will return the main tags that could help a content creator to group the content in a better way. 
-    I will give you 1 million dollars if you do NOT make up any non provided tag and follow the following guidelines:
+      text = transcription.text;
+    }
 
-    - You can only use the following tags: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom.
-    - If none of the above tags are applicable to the content, return an empty array.
-    `
-    : `You are a helpful tag generator assistant. Given a text, you will return the main tags that could
-    help a content creator to group the content in a better way.`;
+    if (!text) throw new Error('No text found');
 
-  console.log(`\nGenerating tags...`);
+    console.log(text);
+    console.log('\nDone with transcription');
+
+    answer = await askQuestion('\nDo you want to use predefined tags? (y/n)');
+
+    const description =
+      answer.toLowerCase() === 'y'
+        ? 'the main tags from the provided (if applicable): use ONLY the following: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom'
+        : 'the main tags that could help a content creator to group the content in a better way';
+    const orderParameters = z.object({
+      tags: z.array(z.string()).describe(description),
+    });
+
+    const tools = [
+      zodFunction({ name: 'getTags', parameters: orderParameters }),
+    ];
+
+    const prompt =
+      answer.toLowerCase() === 'y'
+        ? `You are a helpful tag generator assistant. 
+      Given a text, you will return the main tags that could help a content creator to group the content in a better way. 
+      I will give you 1 million dollars if you do NOT make up any non provided tag and follow the following guidelines:
   
+      - You can only use the following tags: Compassion, Forgiveness, Gratitude, Growth, Service, Stewardship, Honesty, Dignity, Peace, Wisdom.
+      - If none of the above tags are applicable to the content, return an empty array.
+      `
+        : `You are a helpful tag generator assistant. Given a text, you will return the main tags that could
+      help a content creator to group the content in a better way.`;
+
+    console.log(`\nGenerating tags...`);
+
     const messages: Array<ChatCompletionMessageParam> = [
-    {
-      role: 'assistant',
-      content: prompt,
-    },
+      {
+        role: 'assistant',
+        content: prompt,
+      },
 
-    {
-      role: 'user',
-      content: transcription.text,
-    },
-  ];
+      {
+        role: 'user',
+        content: text,
+      },
+    ];
 
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4o-2024-08-06',
-    messages: messages,
-    tools: tools,
-    stream: false,
-    temperature: 0
-  });
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-2024-08-06',
+      messages: messages,
+      tools: tools,
+      stream: false,
+      temperature: 0,
+    });
 
-  console.log('\nResponse');
-  console.log(JSON.stringify(response, null, 2));
+    console.log('\nResponse');
+    console.log(JSON.stringify(response, null, 2));
+
+    answer = await askQuestion('\nDo you want to continue? (y/n)');
+
+    if (answer.toLowerCase() === 'n') {
+      keepGoing = false;
+    }
+  }
 
   return;
 }
